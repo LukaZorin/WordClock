@@ -1,0 +1,221 @@
+#include <LedControl.h>
+#include <Wire.h>
+#include <DS3231.h>
+
+enum class Minute{
+  zero= 0,
+  five=1,
+  fifteen=2,
+  half = 3
+ };
+
+ enum class Past{
+  none=0,
+  past=1,
+  to=2
+ };
+
+class WordClock{
+  public:
+   WordClock(RTCDateTime t){
+     this->pm = (t.hour > 12);
+     this->hour = t.hour % 12;
+     if(t.minute<5){
+       this->minute = Minute::zero;
+       this->past = Past::none;
+     }
+     else if(t.minute < 15){
+       this->minute = Minute::five;
+       this->past = Past::past;
+     }
+     else if(t.minute <30){
+       this->minute = Minute::fifteen;
+       this->past = Past::past;
+     }
+     else if(t.minute <45){
+       this->minute = Minute::half;
+       this->hour = this->hour + 1;
+       this->past = Past::to;
+     }
+     else if(t.minute <55){
+       this->minute = Minute::fifteen;
+       this->past =  Past::to;
+       this->hour = this->hour + 1;
+     }
+     else if(t.minute <=60){ 
+       this->minute = Minute::five;
+       this->past =  Past::to;
+       this->hour = this->hour + 1;
+     }
+  }
+ bool pm = false;
+ Minute minute;
+ Past past = Past::none;
+ int hour = 0;
+  char* ToString(){
+    char* str_minutes = "";
+    switch(minute){
+      case Minute::zero:
+         str_minutes = "";
+         break;
+      case Minute::five:
+         str_minutes = "five";
+         break;
+      case Minute::fifteen:
+         str_minutes = "fifteen";
+         break;
+      case Minute::half:
+         str_minutes = "half";
+    }
+    char* result = new char[255];
+    sprintf(result,"it is %s %s %d %s now", str_minutes, str_minutes==""?"": (past == Past::past ? "past" : past == Past::to ? "to" : "" ) , hour, pm?"pm":"am");
+    
+    return result;
+  }
+};
+
+class Controller{
+    static bool IsLed(int d,int r,int c,WordClock clock){
+    //am
+    if(d==1 && c==4 && r==0 && !clock.pm) return true;
+    //pm
+    if(d==1 && c==2 && r==0 &&  clock.pm) return true;
+    //five
+    if(d==1 && c==4 && r==1 &&  clock.minute == Minute::five) return true;
+    if(d==1 && c==3 && r==1 &&  clock.minute == Minute::five) return true;
+    //fifteen
+    if(d==1 && c==2 && r==1 &&  clock.minute == Minute::fifteen) return true;
+    if(d==1 && c==1 && r==1 &&  clock.minute == Minute::fifteen) return true;
+    if(d==1 && c==0 && r==1 &&  clock.minute == Minute::fifteen) return true;
+    //half
+    if(d==1 && c==4 && r==2 &&  clock.minute == Minute::half) return true;
+    if(d==1 && c==3 && r==2 &&  clock.minute == Minute::half) return true;
+    //to
+    if(d==1 && c==2 && r==2 &&  clock.past == Past::to) return true;
+    //past
+    if(d==1 && c==1 && r==2 &&  clock.past == Past::past) return true;
+    if(d==1 && c==0 && r==2 &&  clock.past == Past::past) return true;
+    //one
+    if(d==1 && c==4 && r==3 &&  clock.hour==1) return true;
+    if(d==1 && c==3 && r==3 &&  clock.hour==1) return true;
+    //two
+    if(d==1 && c==1 && r==3 &&  clock.hour==2) return true;
+    if(d==1 && c==0 && r==3 &&  clock.hour==2) return true;
+    //three
+    if(d==1 && c==4 && r==4 &&  clock.hour==3) return true;
+    if(d==1 && c==3 && r==4 &&  clock.hour==3) return true;
+    if(d==1 && c==2 && r==4 &&  clock.hour==3) return true;
+    //four
+    if(d==1 && c==1 && r==4 &&  clock.hour==4) return true;
+    if(d==1 && c==0 && r==4 &&  clock.hour==4) return true;
+    //five
+    if(d==0 && c==3 && r==0 &&  clock.hour==5) return true;
+    if(d==0 && c==2 && r==0 &&  clock.hour==5) return true;
+    //six
+    if(d==0 && c==1 && r==0 &&  clock.hour==6) return true;
+    if(d==0 && c==0 && r==0 &&  clock.hour==6) return true;
+    //seven
+    if(d==0 && c==4 && r==1 &&  clock.hour==7) return true;
+    if(d==0 && c==3 && r==1 &&  clock.hour==7) return true;
+    if(d==0 && c==2 && r==1 &&  clock.hour==7) return true;
+    //eight
+    if(d==0 && c==4 && r==2 &&  clock.hour==8) return true;
+    if(d==0 && c==3 && r==2 &&  clock.hour==8) return true;
+    if(d==0 && c==2 && r==2 &&  clock.hour==8) return true;
+    //nine
+    if(d==0 && c==1 && r==2 &&  clock.hour==9) return true;
+    if(d==0 && c==0 && r==2 &&  clock.hour==9) return true;
+    //ten
+    if(d==0 && c==4 && r==3 &&  clock.hour==10) return true;
+    if(d==0 && c==3 && r==3 &&  clock.hour==10) return true;
+    //eleven
+    if(d==0 && c==2 && r==3 &&  clock.hour==11) return true;
+    if(d==0 && c==1 && r==3 &&  clock.hour==11) return true;
+    if(d==0 && c==0 && r==3 &&  clock.hour==11) return true;
+    //twelve
+    if(d==0 && c==4 && r==4 &&  clock.hour==12) return true;
+    if(d==0 && c==3 && r==4 &&  clock.hour==12) return true;
+    if(d==0 && c==2 && r==4 &&  clock.hour==12) return true;
+
+    return false;
+  }
+
+ public:
+  static void SetLed(WordClock clock, LedControl lc){
+    for(int d=0; d!=2; d++){
+      for(int r=0; r!=5; r++){
+        for(int c=0; c!=5; c++){
+          lc.setLed(d,c,r,IsLed(d,c,r,clock));
+        }
+      }
+    }
+  }
+};
+
+
+int DIN = 11; 
+int CS = 10;
+int CLK = 13;
+
+LedControl lc = LedControl(DIN, CLK, CS, 4);
+
+DS3231 clock;
+RTCDateTime dt;
+
+int nowMin = dt.minute;
+
+void setup()
+{
+  Serial.begin(9600);
+
+  // Initialize DS3231
+  Serial.println("Initialize DS3231");;
+  clock.begin();
+
+  // Set sketch compiling time
+  clock.setDateTime(__DATE__, __TIME__);
+  
+  for(int i = 0; i<2;i++){
+    lc.shutdown(i, false);
+    lc.setIntensity(i,15);
+    lc.clearDisplay(i);
+  }
+     for(int h = 0; h<12; h++){
+     for(int m = 0; m<60; m+=5){
+       RTCDateTime dt = RTCDateTime();
+       dt.hour = h;
+       dt.minute = m;
+
+       WordClock clock= WordClock(dt);
+       char* time = clock.ToString();
+       Serial.print(h);
+       Serial.print(":");
+       Serial.print(m);
+       Serial.print(" ");
+       Serial.println(time);
+
+      Controller::SetLed(clock, lc);
+      delay(300);
+      delete time; 
+     }
+   }
+
+}
+
+
+
+void loop()
+{
+   RTCDateTime dt1 = clock.getDateTime();
+  if(dt1.hour == dt.hour && dt1.minute == dt.minute){
+    return; 
+  
+  }
+  dt = dt1;
+   WordClock clock = WordClock(dt);
+   Controller::SetLed(clock, lc);
+   Serial.println("----");
+   Serial.println(clock.ToString());
+}
+
+  
